@@ -27,6 +27,13 @@ COPY --from=target / /target
 RUN set -euo pipefail; \
     export PERMCTL_ALLOW_INSECURE_MODE_IF_NO_PROC=1; \
     zypper -n --installroot /target --gpg-auto-import-keys install --no-recommends libpq5 postgresql18-server findutils coreutils sed util-linux postgresql18-pgvector
+# changing user id and group id created by package installation to stable values
+RUN set -euo pipefail; \
+    if chroot /target getent passwd postgres && chroot /target getent group postgres; then\
+        chroot /target chown -R --from=postgres:postgres 999:999 /;\
+        chroot /target groupmod -g 999 postgres; \
+        chroot /target usermod -u 999 postgres; \
+    fi
 RUN set -euo pipefail; zypper -n --installroot /target clean -a; \
     rm -rf {/target,}/var/log/{alternatives.log,lastlog,tallylog,zypper.log,zypp/history,YaST2}; \
     rm -rf {/target,}/run/*; \
